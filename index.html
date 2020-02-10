@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://fonts.googleapis.com/css?family=Oswald|Ranga&display=swap" rel="stylesheet">    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+    integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+    integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+    crossorigin=""></script>
+    <style>
+        body{
+            background-color: rgba(169, 169, 169, 0.767);
+            margin:0;
+            font-family: 'Oswald', sans-serif;
+        }
+        #issMap{
+            height: 580px;
+            margin-bottom: 5px;
+        }
+        h1{
+            color: darkslategray;
+            text-align: center;
+            font-family: 'Oswald', sans-serif;
+        }
+        div{
+            display: flex;
+            justify-content: space-around;
+        }
+        p{
+            font-family: 'Oswald', sans-serif;
+        }
+        span{
+            color: brown
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            border: 1px solid #000000;
+            height: 36px;
+            width: 16px;
+            border-radius: 3px;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -14px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+            box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+        }
+        input[type=range]:disabled::-webkit-slider-thumb {
+            cursor: not-allowed;
+        }
+        
+    </style>
+    <title>ISS position</title>
+</head>
+<body>
+
+    <h1>Where is the ISS ?</h1>
+
+    <div id="content">
+        <p>longitude: <span id="lon">108.713451756</span></p>
+        <p>latitude: <span id="lat">43.256490382962</span></p>
+    </div>
+    <!--Settings-->
+    <button onclick="setAutoFollow()">Auto Follow : <span id="autoVal" style="color:green">Yes</span></button>
+    <label>Zoom : <input id="rangeZoom" type="range" step="1" min="1" max="15" onclick="setZoom()"><span id="zoomVal">8</span></label>
+    <!--The map-->
+    <div id="issMap"></div>
+
+    <script>
+        // set the zoom
+        const rangeZoom = document.getElementById('rangeZoom')
+        const zoomVal = document.getElementById('zoomVal')
+        function setZoom(){
+            var val = rangeZoom.value;
+            zoomVal.innerText = val;
+        }
+        // Set if the camera is following the iss or is free movement with the button
+        var autoFollow = true;
+        var i = 1;
+        const autoVal = document.getElementById('autoVal');
+        function setAutoFollow(){
+            if(i %2 === 0){
+                autoFollow = true;
+                autoVal.innerText = 'Yes';
+                autoVal.style.color = 'green';
+            }else {
+                autoFollow = false;
+                autoVal.innerText = 'No ';
+                autoVal.style.color = 'red';
+            }
+            // disable the range input if autofollow is true
+            if(autoFollow === true){
+                rangeZoom.removeAttribute('disabled');
+            }
+            if(autoFollow === false){
+               rangeZoom.setAttribute('disabled',true);
+            }
+            i++;
+        }
+        
+
+        // Making map and tiles
+        const mymap = L.map('issMap').setView([0, 0], 1);
+
+        const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors '
+
+        const tileUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const tiles = L.tileLayer(tileUrl, { attribution });
+        tiles.addTo(mymap);
+
+        // Making the iss icon
+        var issIcon = L.icon({
+            iconUrl: 'iss200.png',
+            iconSize: [50, 32],
+            iconAnchor: [25, 16],
+        });
+        const marker = L.marker([0, 0],{icon:issIcon}).addTo(mymap);
+        marker.title = 'fdsfs';
+        const iss_url1 = 'https://api.wheretheiss.at/v1/satellites/25544';
+        const iss_url2 = 'http://api.open-notify.org/iss-now.json';
+
+        // Get the position
+        async function getISS(){
+            var url = iss_url1;
+
+            const response = await fetch(url);
+            const data = await response.json();
+            const { longitude , latitude } = data;
+
+            // Second rescue API :
+            // if(data.error = 'Too Many Requests'){
+            //     url = iss_url2
+            // }
+
+            // auto follow & zoom user setting
+            var val = rangeZoom.value;
+            if(autoFollow === true){
+              mymap.setView([latitude, longitude], val);
+            }
+            // marker position
+            marker.setLatLng([latitude, longitude]);
+            //value display
+            document.getElementById('lon').innerText = longitude;
+            document.getElementById('lat').innerText = latitude;
+        }
+        
+        setInterval(getISS,1000)
+
+    </script>
+</body>
+</html>
